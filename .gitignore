@@ -1,0 +1,135 @@
+# Qt/C++ build artifacts
+build/
+*.o
+*.obj
+*.so
+*.dll
+*.exe
+*.a
+*.lib
+*.pdb
+*.user
+*.moc
+*.qrc.cpp
+*.qmlc
+*.qmake.stash
+# Qt Creator
+*.pro.user
+*.pro.user.* 
+*.qbs.user
+*.qbs.user.*
+*.autosave
+
+*~
+*.autosave
+*.a
+*.core
+*.moc
+*.o
+*.obj
+*.orig
+*.rej
+*.so
+*.so.*
+*_pch.h.cpp
+*_resource.rc
+*.qm
+.#*
+*.*#
+core
+!core/
+tags
+.DS_Store
+.directory
+*.debug
+Makefile*
+*.prl
+*.app
+moc_*.cpp
+ui_*.h
+qrc_*.cpp
+Thumbs.db
+*.res
+*.rc
+/.qmake.cache
+/.qmake.stash
+
+# qtcreator generated files
+*.pro.user*
+CMakeLists.txt.user*
+
+# xemacs temporary files
+*.flc
+
+# Vim temporary files
+.*.swp
+
+# Visual Studio generated files
+*.ib_pdb_index
+*.idb
+*.ilk
+*.pdb
+*.sln
+*.suo
+*.vcproj
+*vcproj.*.*.user
+*.ncb
+*.sdf
+*.opensdf
+*.vcxproj
+*vcxproj.*
+
+# MinGW generated files
+*.Debug
+*.Release
+
+# Qt/C++ build artifacts
+build/
+*.o
+*.obj
+*.so
+*.dll
+*.exe
+*.a
+*.lib
+*.pdb
+*.user
+*.moc
+*.qrc.cpp
+*.qmlc
+*.qmake.stash
+
+# Qt Creator
+*.pro.user
+*.pro.user.* 
+*.qbs.user
+*.qbs.user.*
+*.autosave
+
+# CMake
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+compile_commands.json
+
+# VS/IDE
+.vscode/
+*.vcxproj*
+*.sln
+*.suo
+*.user
+*.ncb
+*.opensdf
+*.sdf
+
+# Backup / temporary files
+*~
+*.swp
+*.bak
+*.tmp
+# Binaries
+# --------
+*.dll
+*.exe
+
