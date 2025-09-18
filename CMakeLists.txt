@@ -25,6 +25,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         ${PROJECT_SOURCES}
         character.h character.cpp
         weapons.h weapons.cpp
+        monsters.h monsters.cpp
     )
 
 else()

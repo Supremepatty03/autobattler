@@ -5,16 +5,32 @@
 #include "weapons.h"
 #include <map>
 
+class Character;
+
+struct BattleContext {
+    int turn = 1;                         // текущий ход в бою (управляется классом Battle)
+    int damage = 0;                       // вычисляемый итоговый урон
+    WeaponType damageType = WeaponType::Stabbing; // тип урона (чтобы трейты могли смотреть)
+    Character* attacker = nullptr;        // кто атакует (можно читать статы)
+    Character* defender = nullptr;        // кто защищается
+};
+
 class Character
 {
 public:
-    Character();
-    virtual void attack(Character &) = 0;
+    Character(QString n, int str, int agi, int endu, int hpBase)
+        : name(std::move(n)),
+        strength(str), agility(agi), endurance(endu),
+        hp(hpBase), maxHp(hpBase), level(1) {}
+
+    virtual ~Character() = default;
+    virtual void attack(Character& target, BattleContext& ctx) = 0;
     virtual void takeDamage(int damage) { hp -= damage; }
     virtual bool isAlive() { return (hp > 0); }
 
     void setWeapon(const QString name) {this->currentWeapon = createWeapon(name); }
     int getWeaponDamage () {return (currentWeapon->damage());}
+    WeaponType getWeaponType () {return (currentWeapon->type());}
 
     void addAgility (const int amount) {this->agility+=amount;}
     int getAgility() {return this->agility;}
@@ -24,6 +40,21 @@ public:
 
     void addEndurance (const int amount) {this->endurance+=amount;}
     int getEndurance() {return this->endurance;}
+
+    void healFull() { hp = maxHp; }
+
+    // --- Здоровье ---
+    int getHp() const { return hp; }
+    int getMaxHp() const { return maxHp; }
+    void setMaxHp(int newHp) { maxHp = newHp; hp = maxHp; }
+
+    // --- Общие данные ---
+    QString getName() const { return name; }
+    int getLevel() const { return level; }
+    void levelUp() { ++level; }
+
+protected:
+    QString name;
 
 private:
     int strength;
@@ -36,11 +67,7 @@ private:
     std::unique_ptr<Weapon> currentWeapon;
 };
 
-struct BattleContext
-{
-    int turn = 1;
-    int damage = 0;
-};
+
 
 struct CharacterClassBase
 {
