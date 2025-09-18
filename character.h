@@ -1,16 +1,16 @@
 #ifndef CHARACTER_H
 #define CHARACTER_H
 
-#include <map>
 #include <Qstring>
 #include "weapons.h"
+#include <map>
 
 class Character
 {
 public:
     Character();
-    virtual void attack (Character&) = 0;
-    virtual void takeDamage (int damage) { hp-=damage;}
+    virtual void attack(Character &) = 0;
+    virtual void takeDamage(int damage) { hp -= damage; }
     virtual bool isAlive() { return (hp > 0); }
 
     void setWeapon(const QString name) { currentWeapon = createWeapon(name); }
@@ -26,39 +26,39 @@ private:
     std::unique_ptr<Weapon> currentWeapon;
 };
 
-
-struct BattleContext {
+struct BattleContext
+{
     int turn = 1;
     int damage = 0;
 };
 
-
-struct CharacterClassBase {
+struct CharacterClassBase
+{
     virtual ~CharacterClassBase() = default;
 
     virtual QString name() const = 0;
     virtual int healthPerLevel() const = 0;
-    virtual Weapon* startingWeapon() const = 0;
+    virtual Weapon *startingWeapon() const = 0;
 
-    virtual void applyLevelBonus(Character& c, int level) = 0;
-    virtual void onAttack(Character& attacker, Character& target,
-                          BattleContext& ctx, int level) {}
-
+    virtual void applyLevelBonus(Character &c, int level) = 0;
+    virtual void onAttack(Character &attacker, Character &target, BattleContext &ctx, int level) {}
 };
 
-struct RogueClass : public CharacterClassBase{
-    QString name() const override { return ("Разбойник");}
+struct RogueClass : public CharacterClassBase
+{
+    QString name() const override { return ("Разбойник"); }
     int healthPerLevel() const override { return 4; }
-    Weapon* startingWeapon() const override { return {"Кинжал", 2, WeaponType::Chopping}; }
+    Weapon *startingWeapon() const override { return {"Кинжал", 2, WeaponType::Chopping}; }
 
-    void applyLevelBonus(Character& c, int level) override {
+    void applyLevelBonus(Character &c, int level) override
+    {
         if (level == 2) {
             c.agility += 1;
         }
     }
 
-    void onAttack(Character& attacker, Character& target,
-                  BattleContext& ctx, int level) override {
+    void onAttack(Character &attacker, Character &target, BattleContext &ctx, int level) override
+    {
         // скрытая атака на 1 уровне
         if (level >= 1 && attacker.agility > target.agility) {
             ctx.damage += 1;
@@ -70,9 +70,7 @@ struct RogueClass : public CharacterClassBase{
             std::cout << "Яд! +" << (ctx.turn - 1) << " урона\n";
         }
     }
-
 };
-
 
 class Player : public Character
 {
