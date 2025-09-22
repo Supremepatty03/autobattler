@@ -1,9 +1,14 @@
+#pragma once
 #ifndef CHARACTER_H
 #define CHARACTER_H
 
 #include <Qstring>
 #include "weapons.h"
 #include <map>
+#include <iostream>
+//#include "monsters.h"
+
+struct MonsterTrait;
 
 class Character;
 
@@ -27,6 +32,7 @@ public:
     virtual void attack(Character& target, BattleContext& ctx) = 0;
     virtual void takeDamage(int damage) { hp -= damage; }
     virtual bool isAlive() { return (hp > 0); }
+    virtual void defend (BattleContext& ctx) { takeDamage(ctx.damage); }
 
     void setWeapon(const QString name) {this->currentWeapon = createWeapon(name); }
     int getWeaponDamage () {return (currentWeapon->damage());}
@@ -42,6 +48,7 @@ public:
     int getEndurance() {return this->endurance;}
 
     void healFull() { hp = maxHp; }
+
 
     // --- Здоровье ---
     int getHp() const { return hp; }
@@ -66,8 +73,6 @@ private:
 
     std::unique_ptr<Weapon> currentWeapon;
 };
-
-
 
 struct CharacterClassBase
 {
@@ -100,12 +105,12 @@ struct RogueClass : public CharacterClassBase
         // скрытая атака на 1 уровне
         if (level >= 1 && attacker.getAgility() > target.getAgility()) {
             ctx.damage += 1;
-           // std::cout << "Скрытая атака! +1 урон\n";                                TODO: ADD LOGGING TO COUT
+            std::cout << "Скрытая атака! +1 урон\n";                             //   TODO: ADD LOGGING TO COUT
         }
         // яд на 3 уровне
         if (level >= 3) {
             ctx.damage += (ctx.turn - 1);
-            // std::cout << "Яд! +" << (ctx.turn - 1) << " урона\n";
+            std::cout << "Яд! +" << (ctx.turn - 1) << " урона\n";
         }
     }
     void onDefense(Character& defender, Character& attacker, BattleContext& ctx, int level) override {
@@ -126,7 +131,7 @@ struct WarriorClass : public CharacterClassBase{
         // x2 атака в первый ход
         if (level >= 1 && ctx.turn == 1) {
             ctx.damage += attacker.getWeaponDamage();
-            // std::cout << "Двойной урон от оружия!\n";                                TODO: ADD LOGGING TO COUT
+            std::cout << "Двойной урон от оружия!\n";                             //    TODO: ADD LOGGING TO COUT
         }
     }
     void onDefense(Character& defender, Character& attacker, BattleContext& ctx, int level) override {
@@ -151,11 +156,11 @@ struct BarbarianClass : public CharacterClassBase{
         // Ярость
         if (level >= 1 && ctx.turn <= 3) {
             ctx.damage += 2;
-            // std::cout << "Ярость в действии! +2 урона\n";                                TODO: ADD LOGGING TO COUT
+            std::cout << "Ярость в действии! +2 урона\n";                             //    TODO: ADD LOGGING TO COUT
         }
         else if (level >= 1 && ctx.turn > 3) {
             ctx.damage -= 1;
-            // std::cout << "Герой устал! -1 урон\n";
+            std::cout << "Герой устал! -1 урон\n";
         }
     }
     void onDefense(Character& defender, Character& attacker, BattleContext& ctx, int level) override {
@@ -166,9 +171,139 @@ struct BarbarianClass : public CharacterClassBase{
     }
 };
 
-class Player : public Character
-{
-    std::map<std::unique_ptr<CharacterClassBase>, int> classLevels;
+class Player : public Character {
+public:
+    // Наследуем конструктор Character
+    Player(QString n, int str, int agi, int endu, int hpBase)
+        : Character(std::move(n), str, agi, endu, hpBase)
+    {}
+
+    // Отключаем копирование (удобно при unique_ptr внутри)
+    Player(const Player&) = delete;
+    Player& operator=(const Player&) = delete;
+
+    // --- Основная логика боя ---
+    // attack заполняет ctx (начальный урон и тип) и применяет эффекты классов атакующего
+    void attack(Character& target, BattleContext& ctx) override {
+        ctx.attacker = this;
+        ctx.defender = &target;
+        ctx.damage = getWeaponDamage() + getStrength();
+        ctx.damageType = getWeaponType();
+
+        // Применяем эффекты классов игрока (onAttack)
+        for (const auto& cls : classes_) {
+            if (!cls) continue;
+            int lvl = getClassLevel(cls->name());
+            cls->onAttack(*this, target, ctx, lvl);
+        }
+    }
+
+    // defend применяет эффекты onDefense классов, затем реально наносит урон
+    // (Battle должен вызывать defender->defend(ctx) вместо defender->takeDamage(ctx.damage))
+    virtual void defend (BattleContext& ctx) override {
+        // сначала классовые защиты
+        for (const auto& cls : classes_) {
+            if (!cls) continue;
+            int lvl = getClassLevel(cls->name());
+            cls->onDefense(*this, *ctx.attacker, ctx, lvl);
+        }
+        // затем применяем итоговый урон
+        takeDamage(ctx.damage);
+    }
+
+    // --- Работа с классами (мультикласс) ---
+    // Добавляет класс (уровень 1) и сразу применяет бонус первого уровня
+    void addClass(std::unique_ptr<CharacterClassBase> cls) {
+        if (!cls) return;
+        QString cname = cls->name();
+        // если класс уже есть — ничего не делаем
+        if (hasClass(cname)) return;
+
+        // применяем бонус 1 уровня (если нужен)
+        classLevels_[cname] = 1;
+        // запомним указатель
+        classes_.push_back(std::move(cls));
+
+        // применяем начальные бонусы и выдаём стартовое оружие
+        CharacterClassBase* raw = classes_.back().get();
+        if (raw) {
+            raw->applyLevelBonus(*this, 1);
+            // выдать стартовое оружие если нужно (назначаем по имени)
+            auto sw = raw->startingWeapon();
+            if (sw) {
+                setWeapon(sw->name());
+            }
+            // увеличить maxHp согласно healthPerLevel + выносливости
+            setMaxHp(getMaxHp() + raw->healthPerLevel() + getEndurance());
+            healFull();
+        }
+    }
+
+    // Повысить уровень у выбранного класса по имени (или добавить, если нет)
+    // Возвращает новый уровень или 0 при ошибке
+    int levelUpClass(const QString& className) {
+        // найти класс-объект
+        auto it = std::find_if(classes_.begin(), classes_.end(),
+                               [&](const std::unique_ptr<CharacterClassBase>& p) {
+                                   return p && p->name() == className;
+                               });
+        if (it == classes_.end()) {
+            // класс не найден
+            return 0;
+        }
+        CharacterClassBase* cls = it->get();
+        int newLevel = ++classLevels_[className];
+        // применяем бонусы уровня
+        cls->applyLevelBonus(*this, newLevel);
+        // прибавляем здоровье за уровень
+        setMaxHp(getMaxHp() + cls->healthPerLevel() + getEndurance());
+        healFull();
+        return newLevel;
+    }
+
+    // Удобный levelUp без аргументов: повысить первый класс (если есть)
+    void levelUp() {
+        if (classes_.empty()) {
+            // ничего не делаем
+            Character::levelUp(); // увеличим общий уровень, если хочешь
+            return;
+        }
+        QString cname = classes_.front()->name();
+        levelUpClass(cname);
+        Character::levelUp();
+    }
+
+    // Получить уровень класса по имени
+    int getClassLevel(const QString& className) const {
+        auto it = classLevels_.find(className);
+        return (it == classLevels_.end()) ? 0 : it->second;
+    }
+
+    bool hasClass(const QString& className) const {
+        return getClassLevel(className) > 0;
+    }
+
+    // Отобразить краткую информацию о классах
+    QString getClassSummary() const {
+        QString res;
+        for (const auto& cls : classes_) {
+            if (!cls) continue;
+            QString name = cls->name();
+            int lvl = getClassLevel(name);
+            res += name + " (уровень " + QString::number(lvl) + ")  ";
+        }
+        return res.trimmed();
+    }
+
+    // Доступ к списку классов (только чтение)
+    const std::vector<std::unique_ptr<CharacterClassBase>>& getClasses() const {
+        return classes_;
+    }
+
+private:
+    // vector классов плюс map уровней по имени
+    std::vector<std::unique_ptr<CharacterClassBase>> classes_;
+    std::map<QString, int> classLevels_;
 };
 
 #endif // CHARACTER_H

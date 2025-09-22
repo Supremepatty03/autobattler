@@ -1,5 +1,7 @@
+#pragma once
 #ifndef MONSTERS_H
 #define MONSTERS_H
+
 #include "character.h"
 
 struct MonsterTrait {
@@ -22,8 +24,14 @@ public:
     // даём цельной стороне (defender) обработать ctx (включая её трейты), и затем применяем урон.
     // Но чтобы обеспечить гибкость, мы реализуем логику в менеджере боя (Battle).
 
-    const std::vector<std::unique_ptr<MonsterTrait>>& getTraits() const { return traits; }
-    std::vector<std::unique_ptr<MonsterTrait>>& getTraits() { return traits; }
+
+    const std::vector<std::unique_ptr<MonsterTrait>>& getTraits() const {
+        return traits;
+    }
+
+    std::vector<std::unique_ptr<MonsterTrait>>& getTraits() {
+        return traits;
+    }
 
 protected:
     QString dropWeapon;
@@ -76,7 +84,7 @@ public:
     }
 };
 
-// 3) Slime — иммунитет к рубящему (Chopping)
+// 3) Slime — иммунитет к рубящему
 class SlimeImmunity : public MonsterTrait {
 public:
     void onDefense(Character& defender, Character& attacker, BattleContext& ctx) override {

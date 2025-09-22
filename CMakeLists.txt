@@ -26,6 +26,8 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         character.h character.cpp
         weapons.h weapons.cpp
         monsters.h monsters.cpp
+        battle.h battle.cpp
+        game.h game.cpp
     )
 
 else()
