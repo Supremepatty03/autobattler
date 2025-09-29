@@ -6,7 +6,9 @@ class Game {
 public:
     Game();
     void run() {
-        Player player = createPlayer();
+
+        std::unique_ptr<WarriorClass> cls;                          // TODO: ADD UI CHOISE !!!
+        Player player = createPlayer(std::move(cls));
 
         while (player.isAlive()) {
             std::unique_ptr<Monster> monster = spawnRandomMonster();
@@ -24,7 +26,7 @@ public:
     }
 
 private:
-    Player createPlayer();
+    Player createPlayer(std::unique_ptr<CharacterClassBase> cls);
     std::unique_ptr<Monster> spawnRandomMonster();
     void handleVictory(Player& player, Monster& monster);
 };

@@ -37,6 +37,7 @@ public:
     void setWeapon(const QString name) {this->currentWeapon = createWeapon(name); }
     int getWeaponDamage () {return (currentWeapon->damage());}
     WeaponType getWeaponType () {return (currentWeapon->type());}
+    QString getWeaponName () {return (currentWeapon->name());}
 
     void addAgility (const int amount) {this->agility+=amount;}
     int getAgility() {return this->agility;}
@@ -173,10 +174,11 @@ struct BarbarianClass : public CharacterClassBase{
 
 class Player : public Character {
 public:
-    // Наследуем конструктор Character
-    Player(QString n, int str, int agi, int endu, int hpBase)
-        : Character(std::move(n), str, agi, endu, hpBase)
-    {}
+    explicit Player(std::unique_ptr<CharacterClassBase> cls)
+        : Character("Игрок", 0, 0, 0, cls->healthPerLevel()) // hp из класса
+    {
+        addClass(std::move(cls));
+    }
 
     // Отключаем копирование (удобно при unique_ptr внутри)
     Player(const Player&) = delete;

@@ -89,7 +89,7 @@ class SlimeImmunity : public MonsterTrait {
 public:
     void onDefense(Character& defender, Character& attacker, BattleContext& ctx) override {
         if (ctx.damageType == WeaponType::Chopping) {
-            ctx.damage = 0;
+            ctx.damage = attacker.getStrength();
          //   std::cout << defender.getName().toStdString() << " полностью иммунен к рубящему урону!\n";
         }
     }
