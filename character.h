@@ -15,8 +15,8 @@ class Character;
 struct BattleContext {
     int turn = 1;                         // текущий ход в бою (управляется классом Battle)
     int damage = 0;                       // вычисляемый итоговый урон
-    WeaponType damageType = WeaponType::Stabbing; // тип урона (чтобы трейты могли смотреть)
-    Character* attacker = nullptr;        // кто атакует (можно читать статы)
+    WeaponType damageType = WeaponType::Stabbing; // тип урона
+    Character* attacker = nullptr;        // кто атакует
     Character* defender = nullptr;        // кто защищается
 };
 

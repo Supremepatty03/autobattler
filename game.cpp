@@ -3,8 +3,14 @@
 
 Game::Game() {}
 
+void Game::setClass (std::unique_ptr<CharacterClassBase> cls){
+    chosenClass_ = std::move(cls);
+    if (player_) {
+        player_->addClass(std::move(chosenClass_));
+    }
+}
 Player Game::createPlayer(std::unique_ptr<CharacterClassBase> cls) {
-    return Player(std::make_unique<WarriorClass>());
+    return Player(std::move(cls));
 }
 
 std::unique_ptr<Monster> Game::spawnRandomMonster() {
@@ -16,7 +22,6 @@ std::unique_ptr<Monster> Game::spawnRandomMonster() {
         [] { return std::make_unique<Golem>(); },
         [] { return std::make_unique<Dragon>(); }
     };
-
     static std::random_device rd;
     static std::mt19937 gen(rd());
     std::uniform_int_distribution<size_t> dist(0, factories.size() - 1);

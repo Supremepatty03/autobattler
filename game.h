@@ -25,9 +25,13 @@ public:
         }
     }
 
+    void setClass (std::unique_ptr<CharacterClassBase> cls);
+
 private:
     Player createPlayer(std::unique_ptr<CharacterClassBase> cls);
     std::unique_ptr<Monster> spawnRandomMonster();
     void handleVictory(Player& player, Monster& monster);
+    std::unique_ptr<CharacterClassBase> chosenClass_;
+    std::unique_ptr<Player> player_;
 };
 #endif // GAME_H

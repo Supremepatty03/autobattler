@@ -1,6 +1,6 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
-
+#include "game.h"
 #include <QMainWindow>
 
 QT_BEGIN_NAMESPACE
@@ -17,8 +17,9 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 public slots:
-     void on_startGameButton_clicked();
+    void on_startGameButton_clicked();
 private:
     Ui::MainWindow *ui;
+    Game m_game;
 };
 #endif // MAINWINDOW_H

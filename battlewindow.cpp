@@ -34,6 +34,7 @@ void BattleWindow::appendLog(const QString& text) {
 
 void BattleWindow::on_swapWeaponButton_clicked() {
 
+
 }
 void BattleWindow::on_swapWeaponNegativeButton_clicked() {}
 void BattleWindow::on_newGameButton_clicked() {}
