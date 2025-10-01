@@ -13,7 +13,7 @@ class BattleWindow : public QWidget
     Q_OBJECT
 
 public:
-    explicit BattleWindow(QWidget *parent = nullptr);
+    explicit BattleWindow(Game& game, QWidget *parent = nullptr);
     ~BattleWindow();
 
     // методы для обновления интерфейса
@@ -29,6 +29,7 @@ private slots:
 
 private:
     Ui::BattleWindow *ui;
+    Game& m_game;
 };
 
 #endif // BATTLEWINDOW_H

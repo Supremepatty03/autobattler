@@ -5,33 +5,22 @@
 class Game {
 public:
     Game();
-    void run() {
-
-        std::unique_ptr<WarriorClass> cls;                          // TODO: ADD UI CHOISE !!!
-        Player player = createPlayer(std::move(cls));
-
-        while (player.isAlive()) {
-            std::unique_ptr<Monster> monster = spawnRandomMonster();
-
-            Battle battle;
-            bool won = battle.run(player, *monster, true);
-
-            if (won) {
-                handleVictory(player, *monster);
-            } else {
-                std::cout << "Вы погибли!\n";
-                break;
-            }
-        }
-    }
-
+    void startNextBattle();
     void setClass (std::unique_ptr<CharacterClassBase> cls);
+    Player* getPlayer() { return player_.get(); }
+    const Player* getPlayer() const { return player_.get(); }
 
+    Monster* getCurrentMonster() { return currentMonster_.get(); }
+    const Monster* getCurrentMonster() const { return currentMonster_.get(); }
+    Monster* makeRandomMonster();
 private:
-    Player createPlayer(std::unique_ptr<CharacterClassBase> cls);
     std::unique_ptr<Monster> spawnRandomMonster();
     void handleVictory(Player& player, Monster& monster);
     std::unique_ptr<CharacterClassBase> chosenClass_;
     std::unique_ptr<Player> player_;
+    std::unique_ptr<Monster> currentMonster_;
+
+    int winsToComplete_ = 5;
+    int wins_ = 0;
 };
 #endif // GAME_H

@@ -3,14 +3,31 @@
 
 Game::Game() {}
 
-void Game::setClass (std::unique_ptr<CharacterClassBase> cls){
-    chosenClass_ = std::move(cls);
-    if (player_) {
-        player_->addClass(std::move(chosenClass_));
-    }
+void Game::setClass(std::unique_ptr<CharacterClassBase> cls) {
+    player_ = std::make_unique<Player>(std::move(cls));
 }
-Player Game::createPlayer(std::unique_ptr<CharacterClassBase> cls) {
-    return Player(std::move(cls));
+
+void Game::startNextBattle() {
+    if (!player_ || !player_->isAlive()) {
+        std::cout << "Игра окончена! Игрок мёртв.\n";
+        return;
+    }
+
+    if (wins_ >= winsToComplete_) {
+        std::cout << "Вы уже выиграли игру!\n";
+        return;
+    }
+
+    currentMonster_ = spawnRandomMonster();
+    Battle battle;
+
+    bool won = battle.run(*player_, *currentMonster_, true);
+    if (won) {
+        handleVictory(*player_, *currentMonster_);
+        ++wins_;
+    } else {
+        std::cout << "Вы погибли!\n";
+    }
 }
 
 std::unique_ptr<Monster> Game::spawnRandomMonster() {
@@ -27,6 +44,11 @@ std::unique_ptr<Monster> Game::spawnRandomMonster() {
     std::uniform_int_distribution<size_t> dist(0, factories.size() - 1);
 
     return factories[dist(gen)]();
+}
+Monster* Game::makeRandomMonster()
+{
+    currentMonster_ = spawnRandomMonster(); // ownership остается в Game
+    return currentMonster_.get();
 }
 
 void Game::handleVictory(Player& player, Monster& monster) {

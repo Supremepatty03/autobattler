@@ -29,6 +29,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         battle.h battle.cpp
         game.h game.cpp
         battlewindow.h battlewindow.cpp battlewindow.ui
+        battleworker.h battleworker.cpp
     )
 
 else()

@@ -4,7 +4,10 @@
 
 int main(int argc, char *argv[])
 {
-    Game game;
-    game.run();
-    return 0;
+    QApplication a(argc, argv);
+
+    MainWindow w;
+    w.show();
+
+    return a.exec();
 }
