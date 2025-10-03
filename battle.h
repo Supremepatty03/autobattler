@@ -10,7 +10,8 @@
 #include <cassert>
 #include "character.h"
 #include "monsters.h"
-
+#include <QObject>
+#include <QDebug>
 
 
 enum class BattleResult { AttackerWon, DefenderWon };
@@ -53,7 +54,13 @@ public:
             }
             // 1) шанс попадания
             int atkAgi = attacker->getAgility();
+
+            qDebug() << atkAgi << " attacker->getAgility";
+
             int defAgi = defender->getAgility();
+
+            qDebug() << defAgi << " defender->getAgility";
+
             int sumAgi = std::max(1, atkAgi + defAgi); // защита от нуля
             std::uniform_int_distribution<int> dist(1, sumAgi);
             int roll = dist(rng);

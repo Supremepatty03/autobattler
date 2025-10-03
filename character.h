@@ -6,6 +6,7 @@
 #include "weapons.h"
 #include <map>
 #include <iostream>
+#include <random>
 //#include "monsters.h"
 
 struct MonsterTrait;
@@ -220,7 +221,16 @@ public:
         QString cname = cls->name();
         // если класс уже есть — ничего не делаем
         if (hasClass(cname)) return;
+        static std::mt19937 rng(std::random_device{}());
+        std::uniform_int_distribution<int> dist(1, 3);
 
+        // используем интерфейсные методы addXxx — они добавят к текущим (в конструкторе они 0)
+        addStrength(dist(rng));
+        addAgility(dist(rng));
+        addEndurance(dist(rng));
+
+        // (опционально) логируем выпавшие значения
+        // qDebug() << "Начальные статы: STR" << getStrength() << "AGI" << getAgility() << "END" << getEndurance();
         // применяем бонус 1 уровня (если нужен)
         classLevels_[cname] = 1;
         // запомним указатель
