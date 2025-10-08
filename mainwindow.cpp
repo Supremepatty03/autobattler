@@ -9,8 +9,29 @@ MainWindow::MainWindow(QWidget *parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+    setUpUI();
 }
 
+void MainWindow::setUpUI(){
+    ui->BarbarianHP->display(6);
+    ui->WarriorHP->display(5);
+    ui->RogueHP->display(4);
+    ui->BarbarianWeapon->setText("Дубина");
+    ui->WarriorWeapon->setText("Меч");
+    ui->RogueWeapon->setText("Кинжал");
+
+    ui->WarriorBonus1_2->setText("Порыв к действию: В первый ход наносит двойной урон оружием");
+    ui->BarbarianBonus1->setText("Ярость: +2 к урону в первые 3 хода, потом -1 к урону");
+    ui->RogueBonus1->setText("Скрытая атака:+1 к урону если ловкость персонажа выше ловкости цели");
+
+    ui->WarriorBonus2->setText("Щит: -3 к получаемому урону если сила персонажа выше силы атакующего");
+    ui->BarbarianBonus2->setText("Каменная кожа: Получаемый урон снижается на значение выносливости");
+    ui->RogueBonus2->setText("Ловкость +1");
+
+    ui->WarriorBonus3->setText("Сила +1");
+    ui->BarbarianBonus3->setText("Выносливость +1");
+    ui->RogueBonus3->setText("Яд: Наносит дополнительные +1 урона на втором ходу, +2 на третьем и так далее.");
+}
 MainWindow::~MainWindow()
 {
     delete ui;

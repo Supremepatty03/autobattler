@@ -7,28 +7,46 @@ void Game::setClass(std::unique_ptr<CharacterClassBase> cls) {
     player_ = std::make_unique<Player>(std::move(cls));
 }
 
-void Game::startNextBattle() {
+void Game::startNextBattle(std::function<void(const QString&)> logger)
+{
+    auto log = [&](const QString &s){
+        if (logger) logger(s);
+        else std::cout << s.toStdString() << std::endl;
+    };
+
     if (!player_ || !player_->isAlive()) {
-        std::cout << "Игра окончена! Игрок мёртв.\n";
+        log("Игра окончена! Игрок мёртв.");
         return;
     }
 
     if (wins_ >= winsToComplete_) {
-        std::cout << "Вы уже выиграли игру!\n";
+        log(QString("Вы уже выиграли игру! Побед: %1").arg(winsToComplete_));
         return;
     }
 
+    // создаём и сохраняем текущего монстра
     currentMonster_ = spawnRandomMonster();
-    Battle battle;
+    if (!currentMonster_) {
+        log("Ошибка: не удалось заспавнить монстра.");
+        return;
+    }
 
-    bool won = battle.run(*player_, *currentMonster_, true);
+    // логим старт боя
+    log(QString("Новый монстр: %1").arg(currentMonster_->getName()));
+
+    // запускаем бой — прокидываем logger дальше в Battle::run
+    Battle battle;
+    bool won = battle.run(*player_, *currentMonster_, /*logOutput=*/false, logger);
+
     if (won) {
-        handleVictory(*player_, *currentMonster_);
+        // handleVictory будет логировать через тот же logger
+        handleVictory(*player_, *currentMonster_, logger);
         ++wins_;
     } else {
-        std::cout << "Вы погибли!\n";
+        log("Вы погибли!");
     }
 }
+
 
 std::unique_ptr<Monster> Game::spawnRandomMonster() {
     static std::vector<std::function<std::unique_ptr<Monster>()>> factories = {
@@ -51,29 +69,31 @@ Monster* Game::makeRandomMonster()
     return currentMonster_.get();
 }
 
-void Game::handleVictory(Player& player, Monster& monster) {
-    std::cout << "Игрок победил монстра: "
-              << monster.getName().toStdString() << "!\n";
+void Game::handleVictory(Player& player, Monster& monster,
+                         std::function<void(const QString&)> logger)
+{
+    auto log = [&](const QString &s){
+        if (logger) logger(s);
+        else std::cout << s.toStdString() << std::endl;
+    };
+
+    log(QString("Игрок победил монстра: %1").arg(monster.getName()));
 
     // --- 1. Дроп оружия ---
     QString drop = monster.getDropWeaponName();
     if (!drop.isEmpty()) {
-        std::cout << "Монстр уронил оружие: "
-                  << drop.toStdString() << "\n";
-
-        // игрок подбирает оружие                               /// TODO: ВЫБОР БРАТЬ ЕГО ИЛИ НЕТ UI
+        log(QString("Монстр уронил оружие: %1").arg(drop));
+        // выдаём игроку оружие (в твоей логике: автоматом)
         player.setWeapon(drop);
-        std::cout << "Игрок теперь вооружён: "
-                  << drop.toStdString() << "\n";
+        log(QString("Игрок теперь вооружён: %1").arg(drop));
     }
 
     // --- 2. Повышение уровня ---
     player.levelUp();
-    std::cout << "Игрок поднял уровень! Теперь уровень: "
-              << player.getLevel() << "\n";
+    log(QString("Игрок поднял уровень! Теперь уровень: %1").arg(player.getLevel()));
 
-    // --- 3. Восстановление HP (по желанию) ---
+    // --- 3. Восстановление HP ---
     player.healFull();
-    std::cout << "Игрок восстановил здоровье: "
-              << player.getHp() << "/" << player.getMaxHp() << "\n";
+    log(QString("Игрок восстановил здоровье: %1/%2")
+            .arg(player.getHp()).arg(player.getMaxHp()));
 }

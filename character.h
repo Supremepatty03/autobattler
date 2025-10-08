@@ -3,10 +3,12 @@
 #define CHARACTER_H
 
 #include <Qstring>
+#include <QDebug>
 #include "weapons.h"
 #include <map>
 #include <iostream>
 #include <random>
+
 //#include "monsters.h"
 
 struct MonsterTrait;
@@ -19,6 +21,8 @@ struct BattleContext {
     WeaponType damageType = WeaponType::Stabbing; // тип урона
     Character* attacker = nullptr;        // кто атакует
     Character* defender = nullptr;        // кто защищается
+    std::vector<QString> logs;
+
 };
 
 class Character
@@ -107,12 +111,13 @@ struct RogueClass : public CharacterClassBase
         // скрытая атака на 1 уровне
         if (level >= 1 && attacker.getAgility() > target.getAgility()) {
             ctx.damage += 1;
-            std::cout << "Скрытая атака! +1 урон\n";                             //   TODO: ADD LOGGING TO COUT
+            ctx.logs.emplace_back(QString("Скрытая атака! +1 урон"));
         }
         // яд на 3 уровне
         if (level >= 3) {
-            ctx.damage += (ctx.turn - 1);
-            std::cout << "Яд! +" << (ctx.turn - 1) << " урона\n";
+            int extraDMG = ctx.turn - 1;
+            ctx.damage += extraDMG;
+            ctx.logs.emplace_back(QString("Яд: +%1 урона на этом ходе").arg(extraDMG));
         }
     }
     void onDefense(Character& defender, Character& attacker, BattleContext& ctx, int level) override {
@@ -133,13 +138,15 @@ struct WarriorClass : public CharacterClassBase{
         // x2 атака в первый ход
         if (level >= 1 && ctx.turn == 1) {
             ctx.damage += attacker.getWeaponDamage();
-            std::cout << "Двойной урон от оружия!\n";                             //    TODO: ADD LOGGING TO COUT
+            ctx.logs.emplace_back(QString("Двойной урон от оружия в первый ход!\n"));
         }
     }
     void onDefense(Character& defender, Character& attacker, BattleContext& ctx, int level) override {
         // щит на 2 уровне
         if (level >=2 && defender.getStrength() > attacker.getStrength()){
             ctx.damage = std::max(0, ctx.damage-3);
+            ctx.logs.emplace_back(QString("Сила атакующего меньше силы героя"));
+            ctx.logs.emplace_back(QString("Сработал щит! -3 к урону"));
         }
     }
 };
@@ -158,11 +165,11 @@ struct BarbarianClass : public CharacterClassBase{
         // Ярость
         if (level >= 1 && ctx.turn <= 3) {
             ctx.damage += 2;
-            std::cout << "Ярость в действии! +2 урона\n";                             //    TODO: ADD LOGGING TO COUT
+            ctx.logs.emplace_back(QString("Ярость в действии! +2 урона\n"));
         }
         else if (level >= 1 && ctx.turn > 3) {
             ctx.damage -= 1;
-            std::cout << "Герой устал! -1 урон\n";
+            ctx.logs.emplace_back(QString("Герой устал! -1 урон\n"));
         }
     }
     void onDefense(Character& defender, Character& attacker, BattleContext& ctx, int level) override {
@@ -176,12 +183,14 @@ struct BarbarianClass : public CharacterClassBase{
 class Player : public Character {
 public:
     explicit Player(std::unique_ptr<CharacterClassBase> cls)
-        : Character("Игрок", 0, 0, 0, cls->healthPerLevel()) // hp из класса
+        : Character("Игрок", 0, 0, 0, 0)
     {
+        if (cls) qDebug() << cls->healthPerLevel();
         addClass(std::move(cls));
+        qDebug() << "Начальное хп:" << getHp();
     }
 
-    // Отключаем копирование (удобно при unique_ptr внутри)
+    // Отключаем копирование
     Player(const Player&) = delete;
     Player& operator=(const Player&) = delete;
 
@@ -202,7 +211,6 @@ public:
     }
 
     // defend применяет эффекты onDefense классов, затем реально наносит урон
-    // (Battle должен вызывать defender->defend(ctx) вместо defender->takeDamage(ctx.damage))
     virtual void defend (BattleContext& ctx) override {
         // сначала классовые защиты
         for (const auto& cls : classes_) {
@@ -229,9 +237,6 @@ public:
         addAgility(dist(rng));
         addEndurance(dist(rng));
 
-        // (опционально) логируем выпавшие значения
-        // qDebug() << "Начальные статы: STR" << getStrength() << "AGI" << getAgility() << "END" << getEndurance();
-        // применяем бонус 1 уровня (если нужен)
         classLevels_[cname] = 1;
         // запомним указатель
         classes_.push_back(std::move(cls));

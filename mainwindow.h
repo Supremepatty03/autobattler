@@ -15,6 +15,7 @@ class MainWindow : public QMainWindow
 
 public:
     MainWindow(QWidget *parent = nullptr);
+    void setUpUI();
     ~MainWindow();
 public slots:
     void on_startGameButton_clicked();

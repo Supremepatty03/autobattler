@@ -54,7 +54,6 @@ public:
         ctx.defender = &target;
         ctx.damage = getWeaponDamage() + getStrength();
         ctx.damageType = getWeaponType();
-        // трейты атакующего монстра (у гоблина нет) — вызываются извне менеджером боя
     }
 };
 
@@ -64,7 +63,7 @@ public:
     void onDefense(Character& defender, Character& attacker, BattleContext& ctx) override {
         if (ctx.damageType == WeaponType::Crushing) {
             ctx.damage *= 2;
-           // std::cout << defender.getName().toStdString() << " получает двойной урон от дробящего!\n";
+            ctx.logs.emplace_back(QString("%1 получает двойной урон от дробящего!\n").arg(defender.getName()));
         }
     }
 };
@@ -90,7 +89,7 @@ public:
     void onDefense(Character& defender, Character& attacker, BattleContext& ctx) override {
         if (ctx.damageType == WeaponType::Chopping) {
             ctx.damage = attacker.getStrength();
-         //   std::cout << defender.getName().toStdString() << " полностью иммунен к рубящему урону!\n";
+            ctx.logs.emplace_back(QString("%1 полностью иммунен к урону от рубящего оружия!\n").arg(defender.getName()));
         }
     }
 };
@@ -116,7 +115,8 @@ public:
     void onAttack(Character& attacker, Character& target, BattleContext& ctx) override {
         if (attacker.getAgility() > target.getAgility()) {
             ctx.damage += 1;
-           // std::cout << attacker.getName().toStdString() << " наносит скрытую атаку! +1 урон.\n";
+            ctx.logs.emplace_back(QString("Ловкость атакующего больше\n"));
+            ctx.logs.emplace_back(QString("%1 наносит скрытую атаку! +1 урон.\n").arg(attacker.getName()));
         }
     }
 };
@@ -142,7 +142,7 @@ public:
     void onDefense(Character& defender, Character& attacker, BattleContext& ctx) override {
         const int red = defender.getEndurance();
         ctx.damage = std::max(0, ctx.damage - red);
-      //  std::cout << defender.getName().toStdString() << " снижает урон каменной кожей на " << red << "\n";
+        ctx.logs.emplace_back(QString("%1 снижает урон каменной кожей на %2\n").arg(defender.getName()).arg(red));
     }
 };
 
@@ -167,7 +167,7 @@ public:
     void onAttack(Character& attacker, Character& target, BattleContext& ctx) override {
         if (ctx.turn % 3 == 0) {
             ctx.damage += 3;
-         //   std::cout << attacker.getName().toStdString() << " дышит огнём! +3 урона.\n";
+            ctx.logs.emplace_back(QString("%1 дышит огнём! +3 урона.\n").arg(attacker.getName()));
         }
     }
 };
