@@ -20,17 +20,17 @@ void MainWindow::setUpUI(){
     ui->WarriorWeapon->setText("Меч");
     ui->RogueWeapon->setText("Кинжал");
 
-    ui->WarriorBonus1_2->setText("Порыв к действию: В первый ход наносит двойной урон оружием");
-    ui->BarbarianBonus1->setText("Ярость: +2 к урону в первые 3 хода, потом -1 к урону");
-    ui->RogueBonus1->setText("Скрытая атака:+1 к урону если ловкость персонажа выше ловкости цели");
+    ui->WarriorBonus1_2->setText("Порыв к действию:\nВ первый ход наносит\nдвойной урон оружием");
+    ui->BarbarianBonus1->setText("Ярость:\n+2 к урону в первые 3 хода,\nпотом -1 к урону");
+    ui->RogueBonus1->setText("Скрытая атака:\n+1 к урону если ловкость персонажа\n выше ловкости цели");
 
-    ui->WarriorBonus2->setText("Щит: -3 к получаемому урону если сила персонажа выше силы атакующего");
-    ui->BarbarianBonus2->setText("Каменная кожа: Получаемый урон снижается на значение выносливости");
+    ui->WarriorBonus2->setText("Щит: -3 к получаемому\nурону если сила персонажа\nвыше силы атакующего");
+    ui->BarbarianBonus2->setText("Каменная кожа:\nПолучаемый урон снижается на\nзначение выносливости");
     ui->RogueBonus2->setText("Ловкость +1");
 
     ui->WarriorBonus3->setText("Сила +1");
     ui->BarbarianBonus3->setText("Выносливость +1");
-    ui->RogueBonus3->setText("Яд: Наносит дополнительные +1 урона на втором ходу, +2 на третьем и так далее.");
+    ui->RogueBonus3->setText("Яд: Наносит дополнительные\n+1 урона на втором ходу,\n+2 на третьем и так далее.");
 }
 MainWindow::~MainWindow()
 {
@@ -57,13 +57,19 @@ void MainWindow::on_startGameButton_clicked(){
     m_game.setClass(std::move(userChoise));
     qDebug() << "Game initialized; player created? " << (m_game.getPlayer() != nullptr);
 
-    // 3) Создаём BattleWindow как *независимое* окно (без this как parent)
-    BattleWindow *battleWin = new BattleWindow(m_game); // parent = nullptr
-    battleWin->setAttribute(Qt::WA_DeleteOnClose);      // удалится при закрытии
-    battleWin->setWindowFlag(Qt::Window);               // явное топ-левел окно
+    // BattleWindow независимое окно
+    BattleWindow *battleWin = new BattleWindow(m_game);
+    battleWin->setAttribute(Qt::WA_DeleteOnClose);
+    battleWin->setWindowFlag(Qt::Window);
+
+    connect(battleWin, &BattleWindow::requestReturnToMenu, this, [this, battleWin](){
+        this->show();
+        m_game.reset();
+        battleWin->deleteLater();
+    });
+
     battleWin->show();
 
-    // 4) Скрываем главное окно (оно больше не управляет жизненным циклом battleWin)
     this->hide();
 
     qDebug() << "BattleWindow shown, main window hidden";

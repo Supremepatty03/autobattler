@@ -5,19 +5,17 @@
 
 void BattleWorker::doBattle()
 {
-    if (!m_player || !m_monster) {
-        emit finished(false);
-        return;
-    }
+    if (!m_player || !m_monster) { emit finished(false); return; }
 
-    // лямбда-логгер, который шлёт сообщения в UI через сигнал
-    auto logger = [this](const QString &s){
-        emit logMessage(s);
+    auto logger = [this](const QString &s){ emit logMessage(s); };
+
+    // progress callback — эмитим сигнал hpUpdated
+    auto progress = [this](int ph, int pmax, int mh, int mmax){
+        emit hpUpdated(ph, pmax, mh, mmax);
     };
 
-    // Выполним бой (в отдельном потоке). Метод run синхронно вернёт результат.
     Battle battle;
-    bool won = battle.run(*m_player, *m_monster, /*logOutput=*/false, logger);
+    bool won = battle.run(*m_player, *m_monster, /*logOutput=*/false, logger, progress);
 
     emit finished(won);
 }

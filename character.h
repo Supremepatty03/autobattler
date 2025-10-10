@@ -35,7 +35,7 @@ public:
 
     virtual ~Character() = default;
     virtual void attack(Character& target, BattleContext& ctx) = 0;
-    virtual void takeDamage(int damage) { hp -= damage; }
+    virtual void takeDamage(int damage) { hp -= damage; if (hp < 0) hp = 0;}
     virtual bool isAlive() { return (hp > 0); }
     virtual void defend (BattleContext& ctx) { takeDamage(ctx.damage); }
 
@@ -185,9 +185,10 @@ public:
     explicit Player(std::unique_ptr<CharacterClassBase> cls)
         : Character("Игрок", 0, 0, 0, 0)
     {
-        if (cls) qDebug() << cls->healthPerLevel();
+        QString chosenName = cls->name();
         addClass(std::move(cls));
         qDebug() << "Начальное хп:" << getHp();
+        addOtherClassesZero(chosenName);
     }
 
     // Отключаем копирование
@@ -195,14 +196,13 @@ public:
     Player& operator=(const Player&) = delete;
 
     // --- Основная логика боя ---
-    // attack заполняет ctx (начальный урон и тип) и применяет эффекты классов атакующего
+    // attack заполняет ctx и применяет эффекты классов атакующего
     void attack(Character& target, BattleContext& ctx) override {
         ctx.attacker = this;
         ctx.defender = &target;
         ctx.damage = getWeaponDamage() + getStrength();
         ctx.damageType = getWeaponType();
 
-        // Применяем эффекты классов игрока (onAttack)
         for (const auto& cls : classes_) {
             if (!cls) continue;
             int lvl = getClassLevel(cls->name());
@@ -210,47 +210,40 @@ public:
         }
     }
 
-    // defend применяет эффекты onDefense классов, затем реально наносит урон
+    // defend применяет эффекты onDefense классов, затем наносит урон
     virtual void defend (BattleContext& ctx) override {
-        // сначала классовые защиты
         for (const auto& cls : classes_) {
             if (!cls) continue;
             int lvl = getClassLevel(cls->name());
             cls->onDefense(*this, *ctx.attacker, ctx, lvl);
         }
-        // затем применяем итоговый урон
         takeDamage(ctx.damage);
     }
 
-    // --- Работа с классами (мультикласс) ---
-    // Добавляет класс (уровень 1) и сразу применяет бонус первого уровня
+    // --- Работа с классами  ---
+    // Добавляет класс (уровень 1) и применяет бонус первого уровня
     void addClass(std::unique_ptr<CharacterClassBase> cls) {
         if (!cls) return;
         QString cname = cls->name();
-        // если класс уже есть — ничего не делаем
         if (hasClass(cname)) return;
         static std::mt19937 rng(std::random_device{}());
         std::uniform_int_distribution<int> dist(1, 3);
 
-        // используем интерфейсные методы addXxx — они добавят к текущим (в конструкторе они 0)
         addStrength(dist(rng));
         addAgility(dist(rng));
         addEndurance(dist(rng));
 
         classLevels_[cname] = 1;
-        // запомним указатель
         classes_.push_back(std::move(cls));
 
         // применяем начальные бонусы и выдаём стартовое оружие
         CharacterClassBase* raw = classes_.back().get();
         if (raw) {
             raw->applyLevelBonus(*this, 1);
-            // выдать стартовое оружие если нужно (назначаем по имени)
             auto sw = raw->startingWeapon();
             if (sw) {
                 setWeapon(sw->name());
             }
-            // увеличить maxHp согласно healthPerLevel + выносливости
             setMaxHp(getMaxHp() + raw->healthPerLevel() + getEndurance());
             healFull();
         }
@@ -269,28 +262,46 @@ public:
             return 0;
         }
         CharacterClassBase* cls = it->get();
-        int newLevel = ++classLevels_[className];
-        // применяем бонусы уровня
-        cls->applyLevelBonus(*this, newLevel);
-        // прибавляем здоровье за уровень
-        setMaxHp(getMaxHp() + cls->healthPerLevel() + getEndurance());
-        healFull();
-        return newLevel;
+
+        if (classLevels_[className]<maxClassLevel_){
+            int newLevel = ++classLevels_[className];
+            // бонусы уровня
+            cls->applyLevelBonus(*this, newLevel);
+            // здоровье за уровень
+            setMaxHp(getMaxHp() + cls->healthPerLevel());
+            healFull();
+            return newLevel;
+        }
+        else return 0;
     }
 
-    // Удобный levelUp без аргументов: повысить первый класс (если есть)
     void levelUp() {
         if (classes_.empty()) {
-            // ничего не делаем
-            Character::levelUp(); // увеличим общий уровень, если хочешь
+            Character::levelUp();
             return;
         }
         QString cname = classes_.front()->name();
         levelUpClass(cname);
         Character::levelUp();
     }
+    void addOtherClassesZero(const QString& chosenClassName)
+    {
+        // для добавления класса, если его ещё нет и он не выбран
+        auto addIfNeeded = [&](std::unique_ptr<CharacterClassBase> cls) {
+            if (!cls) return;
+            QString name = cls->name();
+            if (name == chosenClassName) return;      // пропускаем выбранный
+            if (classLevels_.find(name) != classLevels_.end()) return; // уже есть — пропускаем
 
-    // Получить уровень класса по имени
+            // добавление класса с уровнем 0
+            classLevels_[name] = 0;
+            classes_.push_back(std::move(cls));
+        };
+        addIfNeeded(std::make_unique<WarriorClass>());
+        addIfNeeded(std::make_unique<RogueClass>());
+        addIfNeeded(std::make_unique<BarbarianClass>());
+    }
+
     int getClassLevel(const QString& className) const {
         auto it = classLevels_.find(className);
         return (it == classLevels_.end()) ? 0 : it->second;
@@ -300,7 +311,6 @@ public:
         return getClassLevel(className) > 0;
     }
 
-    // Отобразить краткую информацию о классах
     QString getClassSummary() const {
         QString res;
         for (const auto& cls : classes_) {
@@ -316,11 +326,12 @@ public:
     const std::vector<std::unique_ptr<CharacterClassBase>>& getClasses() const {
         return classes_;
     }
-
+    int getMaxClassLevel() {return maxClassLevel_;}
 private:
     // vector классов плюс map уровней по имени
     std::vector<std::unique_ptr<CharacterClassBase>> classes_;
     std::map<QString, int> classLevels_;
+    int maxClassLevel_ = 3;
 };
 
 #endif // CHARACTER_H

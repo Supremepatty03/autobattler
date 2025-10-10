@@ -22,6 +22,7 @@ public slots:
 signals:
     void logMessage(const QString &text);
     void finished(bool won);
+    void hpUpdated(int playerHp, int playerMax, int monsterHp, int monsterMax);
 
 private:
     Player* m_player = nullptr;

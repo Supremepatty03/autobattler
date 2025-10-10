@@ -15,6 +15,7 @@ class BattleWindow : public QWidget
 public:
     explicit BattleWindow(Game& game, QWidget *parent = nullptr);
     ~BattleWindow();
+    void setUpUI();
 
     // методы для обновления интерфейса
     void setPlayerInfo(Character* playerChoise);
@@ -26,10 +27,12 @@ private slots:
     void on_swapWeaponNegativeButton_clicked();
     void on_newGameButton_clicked();
     void on_nextMonsterButton_clicked();
-
+signals:
+    void requestReturnToMenu();
 private:
     Ui::BattleWindow *ui;
     Game& m_game;
+    void showClassChoicePanel();
 };
 
 #endif // BATTLEWINDOW_H

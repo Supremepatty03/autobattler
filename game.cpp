@@ -6,7 +6,16 @@ Game::Game() {}
 void Game::setClass(std::unique_ptr<CharacterClassBase> cls) {
     player_ = std::make_unique<Player>(std::move(cls));
 }
-
+void Game::reset()
+{
+    // Сброс внутренних данных
+    player_.reset();
+    currentMonster_.reset();
+    lastDrop_.clear();
+    pendingLevelUps_ = 0;
+    wins_ = 0;
+    chosenClass_.reset();
+}
 void Game::startNextBattle(std::function<void(const QString&)> logger)
 {
     auto log = [&](const QString &s){
@@ -24,22 +33,18 @@ void Game::startNextBattle(std::function<void(const QString&)> logger)
         return;
     }
 
-    // создаём и сохраняем текущего монстра
     currentMonster_ = spawnRandomMonster();
     if (!currentMonster_) {
         log("Ошибка: не удалось заспавнить монстра.");
         return;
     }
 
-    // логим старт боя
     log(QString("Новый монстр: %1").arg(currentMonster_->getName()));
 
-    // запускаем бой — прокидываем logger дальше в Battle::run
     Battle battle;
     bool won = battle.run(*player_, *currentMonster_, /*logOutput=*/false, logger);
 
     if (won) {
-        // handleVictory будет логировать через тот же logger
         handleVictory(*player_, *currentMonster_, logger);
         ++wins_;
     } else {
@@ -65,13 +70,14 @@ std::unique_ptr<Monster> Game::spawnRandomMonster() {
 }
 Monster* Game::makeRandomMonster()
 {
-    currentMonster_ = spawnRandomMonster(); // ownership остается в Game
+    currentMonster_ = spawnRandomMonster(); // ownership в Game
     return currentMonster_.get();
 }
 
 void Game::handleVictory(Player& player, Monster& monster,
                          std::function<void(const QString&)> logger)
 {
+    ++wins_;
     auto log = [&](const QString &s){
         if (logger) logger(s);
         else std::cout << s.toStdString() << std::endl;
@@ -79,21 +85,76 @@ void Game::handleVictory(Player& player, Monster& monster,
 
     log(QString("Игрок победил монстра: %1").arg(monster.getName()));
 
-    // --- 1. Дроп оружия ---
+    // --- Дроп оружия ---
     QString drop = monster.getDropWeaponName();
+    lastDrop_.clear();
     if (!drop.isEmpty()) {
         log(QString("Монстр уронил оружие: %1").arg(drop));
-        // выдаём игроку оружие (в твоей логике: автоматом)
-        player.setWeapon(drop);
-        log(QString("Игрок теперь вооружён: %1").arg(drop));
+        lastDrop_ = drop;
+        log(QString("Ожидается выбор игрока: взять или оставить (%1)").arg(drop));
+        log(QString("Урон вашего оружия: %1 / Урон дропа: %2").arg(player_->getWeaponDamage()).arg(monster.getWeaponDamage()));
     }
 
-    // --- 2. Повышение уровня ---
-    player.levelUp();
-    log(QString("Игрок поднял уровень! Теперь уровень: %1").arg(player.getLevel()));
+    pendingLevelUps_ += 1;
+    log(QString("Игрок получил право на повышение класса"));
+}
 
-    // --- 3. Восстановление HP ---
-    player.healFull();
-    log(QString("Игрок восстановил здоровье: %1/%2")
-            .arg(player.getHp()).arg(player.getMaxHp()));
+bool Game::applyDropToPlayer(bool take, std::function<void(const QString&)> logger)
+{
+    auto log = [&](const QString &s){
+        if (logger) logger(s);
+        else std::cout << s.toStdString() << std::endl;
+    };
+
+    if (lastDrop_.isEmpty()) {
+        log("Нет последнего дропа для подбора.");
+        return false;
+    }
+
+    if (!take) {
+        log(QString("Игрок отбросил: %1").arg(lastDrop_));
+        lastDrop_.clear();
+        return false;
+    }
+
+    // взять предмет
+    if (!player_) {
+        log("Ошибка: игрока нет.");
+        return false;
+    }
+
+    player_->setWeapon(lastDrop_);
+    log(QString("Игрок подобрал: %1").arg(lastDrop_));
+    lastDrop_.clear();
+    return true;
+}
+bool Game::applyPendingLevelUpToClass(const QString &className, std::function<void(const QString&)> logger)
+{
+    auto log = [&](const QString &s){
+        if (logger) logger(s);
+        else std::cout << s.toStdString() << std::endl;
+    };
+
+    if (pendingLevelUps_ <= 0) {
+        log("Нет доступных повышений для применения.");
+        return false;
+    }
+    if (!player_) {
+        log("Нет игрока.");
+        return false;
+    }
+
+    // повысить указанный класс у игрока
+    int newLvl = player_->levelUpClass(className);
+    if (newLvl <= 0) {
+        log(QString("Не удалось повысить класс %1").arg(className));
+        return false;
+    }
+
+    --pendingLevelUps_;
+    player_->levelUp();    // если хочешь, чтобы общий уровень считался отдельно — можно вызвать Character::levelUp()
+    player_->healFull();   // восстанавливаем здоровье после повышения
+    log(QString("Класс %1 повышен до %2; pending=%3").arg(className).arg(newLvl).arg(pendingLevelUps_));
+    log(QString("Игрок восстановил здоровье: %1/%2").arg(player_->getHp()).arg(player_->getMaxHp()));
+    return true;
 }

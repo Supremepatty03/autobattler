@@ -241,6 +241,16 @@
     </item>
    </layout>
   </widget>
+  <widget class="QWidget" name="classesPanel" native="true">
+   <property name="geometry">
+    <rect>
+     <x>420</x>
+     <y>610</y>
+     <width>521</width>
+     <height>80</height>
+    </rect>
+   </property>
+  </widget>
  </widget>
  <resources/>
  <connections/>
